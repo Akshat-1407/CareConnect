@@ -42,11 +42,8 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      <AdminNav />
-
-      <main className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Welcome Header */}
+    <div className="space-y-8">
+      {/* Welcome Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <Badge variant="outline" className="mb-2 bg-slate-100 text-slate-700 border-slate-300">
@@ -222,7 +219,6 @@ export default function AdminDashboardPage() {
             </Link>
           </div>
         </div>
-      </main>
     </div>
   );
 }

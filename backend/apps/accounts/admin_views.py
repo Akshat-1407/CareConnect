@@ -6,9 +6,12 @@ from django.db.models import Sum, Count
 from django.contrib.auth import get_user_model
 
 from apps.accounts.permissions import IsAdminRole
-from apps.doctors.models import DoctorProfile
+from apps.doctors.models import DoctorProfile, AvailabilitySlot
 from apps.appointments.models import Appointment
 from apps.payments.models import Payment
+from apps.consultations.models import ConsultationSession
+from apps.prescriptions.models import Prescription, PrescriptionMedication
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 
 User = get_user_model()
 
@@ -280,3 +283,138 @@ class AdminPaymentListView(APIView):
             for p in qs
         ]
         return Response(data, status=status.HTTP_200_OK)
+
+
+class AdminUserDetailView(APIView):
+    """
+    DELETE /api/v1/admin/users/<int:pk>/
+    Safely delete a user and cascade all dependent data.
+    """
+    permission_classes = [IsAdminRole]
+
+    def delete(self, request, pk):
+        try:
+            target_user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if target_user.id == request.user.id:
+            return Response({'detail': 'You cannot delete your own admin account.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            if target_user.role == 'doctor':
+                doctor_profile = getattr(target_user, 'doctor_profile', None)
+                if doctor_profile:
+                    appts = Appointment.objects.filter(doctor=doctor_profile)
+                    prescriptions = Prescription.objects.filter(appointment__in=appts) | Prescription.objects.filter(doctor=doctor_profile)
+                    PrescriptionMedication.objects.filter(prescription__in=prescriptions).delete()
+                    prescriptions.delete()
+                    ConsultationSession.objects.filter(appointment__in=appts).delete()
+                    Payment.objects.filter(appointment__in=appts).delete()
+                    appts.delete()
+                    AvailabilitySlot.objects.filter(doctor=doctor_profile).delete()
+                    doctor_profile.delete()
+            elif target_user.role == 'patient':
+                appts = Appointment.objects.filter(patient=target_user)
+                prescriptions = Prescription.objects.filter(appointment__in=appts) | Prescription.objects.filter(patient=target_user)
+                PrescriptionMedication.objects.filter(prescription__in=prescriptions).delete()
+                prescriptions.delete()
+                ConsultationSession.objects.filter(appointment__in=appts).delete()
+                Payment.objects.filter(appointment__in=appts).delete()
+                for appt in appts:
+                    if appt.slot:
+                        appt.slot.is_booked = False
+                        appt.slot.save(update_fields=['is_booked'])
+                appts.delete()
+
+            outstanding = OutstandingToken.objects.filter(user=target_user)
+            BlacklistedToken.objects.filter(token__in=outstanding).delete()
+            outstanding.delete()
+
+            username = target_user.username
+            target_user.delete()
+
+        return Response({'message': f'User {username} deleted successfully.'}, status=status.HTTP_200_OK)
+
+
+class AdminDoctorDetailView(APIView):
+    """
+    DELETE /api/v1/admin/doctors/<int:pk>/
+    Delete a doctor profile and linked user account.
+    """
+    permission_classes = [IsAdminRole]
+
+    def delete(self, request, pk):
+        try:
+            doctor_profile = DoctorProfile.objects.select_related('user').get(pk=pk)
+        except DoctorProfile.DoesNotExist:
+            return Response({'detail': 'Doctor not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        doctor_user = doctor_profile.user
+        doctor_name = doctor_user.get_full_name() or doctor_user.username
+
+        with transaction.atomic():
+            appts = Appointment.objects.filter(doctor=doctor_profile)
+            prescriptions = Prescription.objects.filter(appointment__in=appts) | Prescription.objects.filter(doctor=doctor_profile)
+            PrescriptionMedication.objects.filter(prescription__in=prescriptions).delete()
+            prescriptions.delete()
+            ConsultationSession.objects.filter(appointment__in=appts).delete()
+            Payment.objects.filter(appointment__in=appts).delete()
+            appts.delete()
+            AvailabilitySlot.objects.filter(doctor=doctor_profile).delete()
+            doctor_profile.delete()
+            if doctor_user:
+                outstanding = OutstandingToken.objects.filter(user=doctor_user)
+                BlacklistedToken.objects.filter(token__in=outstanding).delete()
+                outstanding.delete()
+                doctor_user.delete()
+
+        return Response({'message': f'Dr. {doctor_name} deleted successfully.'}, status=status.HTTP_200_OK)
+
+
+class AdminAppointmentDetailView(APIView):
+    """
+    DELETE /api/v1/admin/appointments/<int:pk>/
+    Delete an appointment and its linked payments/prescriptions, freeing the slot.
+    """
+    permission_classes = [IsAdminRole]
+
+    def delete(self, request, pk):
+        try:
+            appointment = Appointment.objects.select_related('slot').get(pk=pk)
+        except Appointment.DoesNotExist:
+            return Response({'detail': 'Appointment not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        with transaction.atomic():
+            prescriptions = Prescription.objects.filter(appointment=appointment)
+            PrescriptionMedication.objects.filter(prescription__in=prescriptions).delete()
+            prescriptions.delete()
+            ConsultationSession.objects.filter(appointment=appointment).delete()
+            Payment.objects.filter(appointment=appointment).delete()
+
+            if appointment.slot:
+                appointment.slot.is_booked = False
+                appointment.slot.save(update_fields=['is_booked'])
+
+            appointment.delete()
+
+        return Response({'message': f'Appointment #{pk} deleted successfully.'}, status=status.HTTP_200_OK)
+
+
+class AdminPaymentDetailView(APIView):
+    """
+    DELETE /api/v1/admin/payments/<int:pk>/
+    Delete a payment record.
+    """
+    permission_classes = [IsAdminRole]
+
+    def delete(self, request, pk):
+        try:
+            payment = Payment.objects.get(pk=pk)
+        except Payment.DoesNotExist:
+            return Response({'detail': 'Payment not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        with transaction.atomic():
+            payment.delete()
+
+        return Response({'message': f'Payment #{pk} deleted successfully.'}, status=status.HTTP_200_OK)

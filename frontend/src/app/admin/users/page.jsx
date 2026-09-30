@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Search, Mail, Shield, User, Loader2 } from "lucide-react";
+import { Users, Search, Mail, Shield, User, Loader2, Trash2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { getAdminUsers } from "@/services/admin";
+import { getAdminUsers, deleteAdminUser } from "@/services/admin";
 import AdminNav from "@/components/admin/AdminNav";
+import DeleteConfirmModal from "@/components/admin/DeleteConfirmModal";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 const ROLES = [
   { label: "All Users", value: "" },
@@ -22,6 +24,9 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
 
   const loadUsers = async () => {
     try {
@@ -35,6 +40,23 @@ export default function AdminUsersPage() {
       console.error("Failed to load users:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    try {
+      setIsDeleting(true);
+      const res = await deleteAdminUser(userToDelete.id);
+      setMessage({ type: "success", text: res?.message || `User ${userToDelete.username} deleted successfully.` });
+      setUserToDelete(null);
+      loadUsers();
+      setTimeout(() => setMessage({ type: "", text: "" }), 5000);
+    } catch (err) {
+      console.error("Failed to delete user:", err);
+      setMessage({ type: "error", text: err?.data?.detail || "Failed to delete user." });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -65,11 +87,8 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      <AdminNav />
-
-      <main className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Header */}
+    <div className="space-y-6">
+      {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <Badge variant="outline" className="mb-1.5 bg-teal-50 text-teal-700 border-teal-200">
@@ -83,6 +102,22 @@ export default function AdminUsersPage() {
             </p>
           </div>
         </div>
+
+        {/* Notification Banner */}
+        {message.text && (
+          <div className={`p-4 rounded-xl text-xs flex items-center gap-2.5 border ${
+            message.type === "success" 
+              ? "bg-emerald-50 border-emerald-200 text-emerald-800" 
+              : "bg-rose-50 border-rose-200 text-rose-800"
+          }`}>
+            {message.type === "success" ? (
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+            )}
+            <span className="font-semibold">{message.text}</span>
+          </div>
+        )}
 
         {/* Filter Tabs & Search */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -139,46 +174,74 @@ export default function AdminUsersPage() {
                     <th className="py-3.5 px-4">Role</th>
                     <th className="py-3.5 px-4">Status</th>
                     <th className="py-3.5 px-4">Date Joined</th>
+                    <th className="py-3.5 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {users.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-50/50 transition">
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <div className="h-8 w-8 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs">
-                            {u.first_name?.[0] || u.username[0].toUpperCase()}
+                  {users.map((u) => {
+                    const isSelf = user?.id === u.id;
+                    return (
+                      <tr key={u.id} className="hover:bg-slate-50/50 transition">
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-8 w-8 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs">
+                              {u.first_name?.[0] || u.username[0].toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="font-bold text-slate-900 block">
+                                {u.first_name || u.last_name ? `${u.first_name} ${u.last_name}` : u.username}
+                                {isSelf && (
+                                  <span className="ml-1.5 text-[10px] text-teal-600 font-semibold">(You)</span>
+                                )}
+                              </span>
+                              <span className="text-[11px] text-slate-400 block font-mono">@{u.username}</span>
+                            </div>
                           </div>
-                          <div>
-                            <span className="font-bold text-slate-900 block">
-                              {u.first_name || u.last_name ? `${u.first_name} ${u.last_name}` : u.username}
-                            </span>
-                            <span className="text-[11px] text-slate-400 block font-mono">@{u.username}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 font-mono text-[11px] text-slate-600">
-                        {u.email}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        {getRoleBadge(u.role)}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <Badge variant={u.is_active ? "success" : "secondary"} className="text-[10px]">
-                          {u.is_active ? "Active" : "Inactive"}
-                        </Badge>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-400 text-[11px]">
-                        {u.date_joined ? new Date(u.date_joined).toLocaleDateString() : "—"}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="py-3.5 px-4 font-mono text-[11px] text-slate-600">
+                          {u.email}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          {getRoleBadge(u.role)}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <Badge variant={u.is_active ? "success" : "secondary"} className="text-[10px]">
+                            {u.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-400 text-[11px]">
+                          {u.date_joined ? new Date(u.date_joined).toLocaleDateString() : "—"}
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={isSelf}
+                            onClick={() => setUserToDelete(u)}
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 disabled:opacity-30"
+                            title={isSelf ? "You cannot delete your own account" : `Delete ${u.username}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           </Card>
         )}
-      </main>
+
+        <DeleteConfirmModal
+          isOpen={Boolean(userToDelete)}
+          onClose={() => setUserToDelete(null)}
+          onConfirm={handleDeleteUser}
+          loading={isDeleting}
+          title="Delete User Account"
+          description={`Are you sure you want to permanently delete this user account? All associated bookings, doctor profiles, and records will be deleted.`}
+          itemTitle={userToDelete ? `@${userToDelete.username} (${userToDelete.email} • ${userToDelete.role})` : ""}
+        />
     </div>
   );
 }

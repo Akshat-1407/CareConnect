@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { UserCheck, UserPlus, Search, Stethoscope, Calendar, Clock, Loader2, CheckCircle2 } from "lucide-react";
+import { UserCheck, UserPlus, Search, Stethoscope, Calendar, Clock, Loader2, CheckCircle2, Trash2, AlertCircle } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { getAdminDoctors } from "@/services/admin";
+import { getAdminDoctors, deleteAdminDoctor } from "@/services/admin";
 import AdminNav from "@/components/admin/AdminNav";
 import CreateDoctorModal from "@/components/admin/CreateDoctorModal";
+import DeleteConfirmModal from "@/components/admin/DeleteConfirmModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +18,9 @@ export default function AdminDoctorsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [doctorToDelete, setDoctorToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [feedback, setFeedback] = useState({ type: "", text: "" });
 
   const loadDoctors = async () => {
     try {
@@ -37,9 +40,26 @@ export default function AdminDoctorsPage() {
   }, [authLoading]);
 
   const handleDoctorCreated = (newDoctor) => {
-    setSuccessMessage(`Doctor account for ${newDoctor.name} created successfully!`);
+    setFeedback({ type: "success", text: `Doctor account for ${newDoctor.name} created successfully!` });
     loadDoctors();
-    setTimeout(() => setSuccessMessage(""), 5000);
+    setTimeout(() => setFeedback({ type: "", text: "" }), 5000);
+  };
+
+  const handleDeleteDoctor = async () => {
+    if (!doctorToDelete) return;
+    try {
+      setIsDeleting(true);
+      const res = await deleteAdminDoctor(doctorToDelete.id);
+      setFeedback({ type: "success", text: res?.message || `${doctorToDelete.name} deleted successfully.` });
+      setDoctorToDelete(null);
+      loadDoctors();
+      setTimeout(() => setFeedback({ type: "", text: "" }), 5000);
+    } catch (err) {
+      console.error("Failed to delete doctor:", err);
+      setFeedback({ type: "error", text: err?.data?.detail || "Failed to delete doctor account." });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const filteredDoctors = doctors.filter((d) => {
@@ -62,11 +82,8 @@ export default function AdminDoctorsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      <AdminNav />
-
-      <main className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Header */}
+    <div className="space-y-6">
+      {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <Badge variant="outline" className="mb-1.5 bg-blue-50 text-blue-700 border-blue-200">
@@ -88,11 +105,19 @@ export default function AdminDoctorsPage() {
           </Button>
         </div>
 
-        {/* Success Alert */}
-        {successMessage && (
-          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2.5">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-            <span className="font-semibold">{successMessage}</span>
+        {/* Feedback Alert */}
+        {feedback.text && (
+          <div className={`p-4 rounded-xl text-xs flex items-center gap-2.5 border ${
+            feedback.type === "success" 
+              ? "bg-emerald-50 border-emerald-200 text-emerald-800" 
+              : "bg-rose-50 border-rose-200 text-rose-800"
+          }`}>
+            {feedback.type === "success" ? (
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+            )}
+            <span className="font-semibold">{feedback.text}</span>
           </div>
         )}
 
@@ -140,6 +165,7 @@ export default function AdminDoctorsPage() {
                     <th className="py-3.5 px-4">Appointments</th>
                     <th className="py-3.5 px-4">Status</th>
                     <th className="py-3.5 px-4">Joined</th>
+                    <th className="py-3.5 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -184,6 +210,17 @@ export default function AdminDoctorsPage() {
                       <td className="py-3.5 px-4 text-slate-400 text-[11px]">
                         {doc.date_joined ? new Date(doc.date_joined).toLocaleDateString() : "—"}
                       </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDoctorToDelete(doc)}
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                          title={`Delete ${doc.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -197,7 +234,16 @@ export default function AdminDoctorsPage() {
           onClose={() => setIsModalOpen(false)}
           onSuccess={handleDoctorCreated}
         />
-      </main>
+
+        <DeleteConfirmModal
+          isOpen={Boolean(doctorToDelete)}
+          onClose={() => setDoctorToDelete(null)}
+          onConfirm={handleDeleteDoctor}
+          loading={isDeleting}
+          title="Delete Doctor Account"
+          description="Are you sure you want to delete this doctor? Their profile, credentials, availability slots, and appointment records will be permanently removed."
+          itemTitle={doctorToDelete ? `${doctorToDelete.name} (${doctorToDelete.specialization} • ${doctorToDelete.email})` : ""}
+        />
     </div>
   );
 }

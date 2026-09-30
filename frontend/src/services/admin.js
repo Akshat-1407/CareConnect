@@ -54,3 +54,39 @@ export async function getAdminPayments(params = {}) {
   const qs = query.toString();
   return apiClient(`/admin/payments/${qs ? `?${qs}` : ""}`);
 }
+
+/**
+ * Admin deletes a user account (patient/doctor/admin).
+ */
+export async function deleteAdminUser(userId) {
+  return apiClient(`/admin/users/${userId}/`, {
+    method: "DELETE",
+  });
+}
+
+/**
+ * Admin deletes a doctor profile and user account.
+ */
+export async function deleteAdminDoctor(doctorId) {
+  return apiClient(`/admin/doctors/${doctorId}/`, {
+    method: "DELETE",
+  });
+}
+
+/**
+ * Admin deletes an appointment.
+ */
+export async function deleteAdminAppointment(appointmentId) {
+  return apiClient(`/admin/appointments/${appointmentId}/`, {
+    method: "DELETE",
+  });
+}
+
+/**
+ * Admin deletes a payment record.
+ */
+export async function deleteAdminPayment(paymentId) {
+  return apiClient(`/admin/payments/${paymentId}/`, {
+    method: "DELETE",
+  });
+}

@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar, Clock, Stethoscope, User, Search, Loader2 } from "lucide-react";
+import { Calendar, Clock, Stethoscope, User, Search, Loader2, Trash2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { getAdminAppointments } from "@/services/admin";
+import { getAdminAppointments, deleteAdminAppointment } from "@/services/admin";
 import AdminNav from "@/components/admin/AdminNav";
+import DeleteConfirmModal from "@/components/admin/DeleteConfirmModal";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 const STATUS_FILTERS = [
   { label: "All Appointments", value: "" },
@@ -23,6 +25,9 @@ export default function AdminAppointmentsPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [apptToDelete, setApptToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [feedback, setFeedback] = useState({ type: "", text: "" });
 
   const loadAppointments = async () => {
     try {
@@ -35,6 +40,23 @@ export default function AdminAppointmentsPage() {
       console.error("Failed to load admin appointments:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteAppointment = async () => {
+    if (!apptToDelete) return;
+    try {
+      setIsDeleting(true);
+      const res = await deleteAdminAppointment(apptToDelete.id);
+      setFeedback({ type: "success", text: res?.message || `Appointment #${apptToDelete.id} deleted successfully.` });
+      setApptToDelete(null);
+      loadAppointments();
+      setTimeout(() => setFeedback({ type: "", text: "" }), 5000);
+    } catch (err) {
+      console.error("Failed to delete appointment:", err);
+      setFeedback({ type: "error", text: err?.data?.detail || "Failed to delete appointment." });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -78,11 +100,8 @@ export default function AdminAppointmentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      <AdminNav />
-
-      <main className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Header */}
+    <div className="space-y-6">
+      {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <Badge variant="outline" className="mb-1.5 bg-emerald-50 text-emerald-700 border-emerald-200">
@@ -96,6 +115,22 @@ export default function AdminAppointmentsPage() {
             </p>
           </div>
         </div>
+
+        {/* Notification Banner */}
+        {feedback.text && (
+          <div className={`p-4 rounded-xl text-xs flex items-center gap-2.5 border ${
+            feedback.type === "success" 
+              ? "bg-emerald-50 border-emerald-200 text-emerald-800" 
+              : "bg-rose-50 border-rose-200 text-rose-800"
+          }`}>
+            {feedback.type === "success" ? (
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+            )}
+            <span className="font-semibold">{feedback.text}</span>
+          </div>
+        )}
 
         {/* Filter Tabs & Search */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -154,6 +189,7 @@ export default function AdminAppointmentsPage() {
                     <th className="py-3.5 px-4">Fee</th>
                     <th className="py-3.5 px-4">Status</th>
                     <th className="py-3.5 px-4">Booked At</th>
+                    <th className="py-3.5 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -191,6 +227,17 @@ export default function AdminAppointmentsPage() {
                       <td className="py-3.5 px-4 text-slate-400 text-[11px]">
                         {appt.created_at ? new Date(appt.created_at).toLocaleDateString() : "—"}
                       </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setApptToDelete(appt)}
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                          title={`Delete Appointment #${appt.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -198,7 +245,16 @@ export default function AdminAppointmentsPage() {
             </div>
           </Card>
         )}
-      </main>
+
+        <DeleteConfirmModal
+          isOpen={Boolean(apptToDelete)}
+          onClose={() => setApptToDelete(null)}
+          onConfirm={handleDeleteAppointment}
+          loading={isDeleting}
+          title="Delete Appointment"
+          description="Are you sure you want to permanently delete this appointment? Associated payment records, prescriptions, and consultation sessions will also be removed, and the doctor slot will be released."
+          itemTitle={apptToDelete ? `Appointment #${apptToDelete.id} (${apptToDelete.patient?.name} with ${apptToDelete.doctor?.name} • ₹${apptToDelete.amount})` : ""}
+        />
     </div>
   );
 }

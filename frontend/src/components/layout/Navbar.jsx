@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Stethoscope, LogOut, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -15,6 +15,11 @@ const DASHBOARD_ROUTES = {
 export default function Navbar() {
   const { user, isAuthenticated, role, loading, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/internal/admin")) {
+    return null;
+  }
 
   const handleLogout = async () => {
     await logout();

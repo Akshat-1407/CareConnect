@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CreditCard, Search, CheckCircle2, Clock, XCircle, Loader2 } from "lucide-react";
+import { CreditCard, Search, CheckCircle2, Clock, XCircle, Loader2, Trash2, AlertCircle } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { getAdminPayments } from "@/services/admin";
+import { getAdminPayments, deleteAdminPayment } from "@/services/admin";
 import AdminNav from "@/components/admin/AdminNav";
+import DeleteConfirmModal from "@/components/admin/DeleteConfirmModal";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 const STATUS_FILTERS = [
   { label: "All Payments", value: "" },
@@ -22,6 +24,9 @@ export default function AdminPaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [paymentToDelete, setPaymentToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [feedback, setFeedback] = useState({ type: "", text: "" });
 
   const loadPayments = async () => {
     try {
@@ -34,6 +39,23 @@ export default function AdminPaymentsPage() {
       console.error("Failed to load admin payments:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeletePayment = async () => {
+    if (!paymentToDelete) return;
+    try {
+      setIsDeleting(true);
+      const res = await deleteAdminPayment(paymentToDelete.id);
+      setFeedback({ type: "success", text: res?.message || `Payment #${paymentToDelete.id} deleted successfully.` });
+      setPaymentToDelete(null);
+      loadPayments();
+      setTimeout(() => setFeedback({ type: "", text: "" }), 5000);
+    } catch (err) {
+      console.error("Failed to delete payment:", err);
+      setFeedback({ type: "error", text: err?.data?.detail || "Failed to delete payment." });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -76,11 +98,8 @@ export default function AdminPaymentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      <AdminNav />
-
-      <main className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Header */}
+    <div className="space-y-6">
+      {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <Badge variant="outline" className="mb-1.5 bg-amber-50 text-amber-700 border-amber-200">
@@ -94,6 +113,22 @@ export default function AdminPaymentsPage() {
             </p>
           </div>
         </div>
+
+        {/* Notification Banner */}
+        {feedback.text && (
+          <div className={`p-4 rounded-xl text-xs flex items-center gap-2.5 border ${
+            feedback.type === "success" 
+              ? "bg-emerald-50 border-emerald-200 text-emerald-800" 
+              : "bg-rose-50 border-rose-200 text-rose-800"
+          }`}>
+            {feedback.type === "success" ? (
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+            )}
+            <span className="font-semibold">{feedback.text}</span>
+          </div>
+        )}
 
         {/* Filter Tabs & Search */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -153,6 +188,7 @@ export default function AdminPaymentsPage() {
                     <th className="py-3.5 px-4">Status</th>
                     <th className="py-3.5 px-4">Razorpay Reference</th>
                     <th className="py-3.5 px-4">Date</th>
+                    <th className="py-3.5 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -192,6 +228,17 @@ export default function AdminPaymentsPage() {
                       <td className="py-3.5 px-4 text-slate-400 text-[11px]">
                         {p.created_at ? new Date(p.created_at).toLocaleDateString() : "—"}
                       </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPaymentToDelete(p)}
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                          title={`Delete Payment #${p.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -199,7 +246,16 @@ export default function AdminPaymentsPage() {
             </div>
           </Card>
         )}
-      </main>
+
+        <DeleteConfirmModal
+          isOpen={Boolean(paymentToDelete)}
+          onClose={() => setPaymentToDelete(null)}
+          onConfirm={handleDeletePayment}
+          loading={isDeleting}
+          title="Delete Payment Record"
+          description="Are you sure you want to delete this payment transaction record? This will permanently remove the payment history entry."
+          itemTitle={paymentToDelete ? `Payment #${paymentToDelete.id} (Appt #${paymentToDelete.appointment_id} • ₹${paymentToDelete.amount} • ${paymentToDelete.status})` : ""}
+        />
     </div>
   );
 }
