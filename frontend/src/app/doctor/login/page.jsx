@@ -23,20 +23,13 @@ export default function DoctorLoginPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="flex justify-center mb-8">
-          <div className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow">
-              <Stethoscope className="h-5 w-5" />
-            </div>
-            <span className="text-xl font-bold text-slate-900">
-              Care<span className="text-blue-600">Connect</span>
-            </span>
-          </div>
-        </div>
+    <div className="relative isolate flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden bg-[linear-gradient(135deg,_#f8fbff_0%,_#eef8f5_52%,_#ffffff_100%)] px-4 py-12">
+      <div aria-hidden="true" className="care-float pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-teal-200/35 blur-3xl" />
+      <div aria-hidden="true" className="care-float pointer-events-none absolute -right-28 bottom-0 h-80 w-80 rounded-full bg-blue-200/35 blur-3xl [animation-delay:1.5s]" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(#0f766e_0.7px,transparent_0.7px)] [background-size:24px_24px]" />
+      <div className="relative w-full max-w-md">
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="care-enter rounded-3xl border border-white/80 bg-white/90 p-8 shadow-2xl shadow-slate-900/10 backdrop-blur-sm transition-shadow duration-300 hover:shadow-blue-900/15">
           <AuthForm
             title="Doctor Portal"
             subtitle="Access your appointments, availability, and patient consultations."

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ export default function AuthForm({
   onSubmit,
   footer,
   accentColor = "teal",
+  compact = false,
 }) {
   const [values, setValues] = useState(() =>
     Object.fromEntries(fields.map((f) => [f.name, ""]))
@@ -53,22 +54,22 @@ export default function AuthForm({
   }[accentColor] ?? "bg-teal-600 hover:bg-teal-700";
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-        {subtitle && <p className="mt-2 text-sm text-slate-500">{subtitle}</p>}
+    <div className="w-full mx-auto">
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-950">{title}</h1>
+        {subtitle && <p className="mt-2 max-w-lg text-sm leading-6 text-slate-500">{subtitle}</p>}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className={cn(compact ? "grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2" : "space-y-5")}>
         {fields.map((field) => {
           const isPassword = field.type === "password";
           const shown = showPasswords[field.name];
 
           return (
-            <div key={field.name}>
+            <div key={field.name} className={compact ? "min-w-0" : undefined}>
               <label
                 htmlFor={field.name}
-                className="block text-sm font-medium text-slate-700 mb-1"
+                className="mb-2 block text-sm font-medium text-slate-700"
               >
                 {field.label}
               </label>
@@ -83,17 +84,18 @@ export default function AuthForm({
                   value={values[field.name]}
                   onChange={(e) => handleChange(field.name, e.target.value)}
                   className={cn(
-                    "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900",
-                    "placeholder:text-slate-400 transition",
-                    "focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500",
+                    "h-12 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-4 text-sm text-slate-900 shadow-sm",
+                    "placeholder:text-slate-400 transition-all duration-200",
+                    "hover:border-slate-300 hover:bg-white focus:border-teal-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-teal-500/10",
                     isPassword && "pr-10"
                   )}
                 />
                 {isPassword && (
                   <button
                     type="button"
-                    tabIndex={-1}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    aria-label={shown ? `Hide ${field.label}` : `Show ${field.label}`}
+                    aria-pressed={shown}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-400 transition-colors hover:bg-teal-50 hover:text-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
                     onClick={() =>
                       setShowPasswords((p) => ({ ...p, [field.name]: !p[field.name] }))
                     }
@@ -107,8 +109,9 @@ export default function AuthForm({
         })}
 
         {error && (
-          <div className="rounded-lg bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700">
-            {error}
+          <div id="auth-form-error" role="alert" className={cn("flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-5 text-rose-700", compact && "sm:col-span-2")}>
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{error}</span>
           </div>
         )}
 
@@ -116,8 +119,9 @@ export default function AuthForm({
           type="submit"
           disabled={loading}
           className={cn(
-            "w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition",
-            "focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed",
+            "flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-white shadow-md transition-all duration-200",
+            "hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-md mt-8",
+            compact && "sm:col-span-2",
             accent
           )}
         >
@@ -126,7 +130,7 @@ export default function AuthForm({
         </button>
       </form>
 
-      {footer && <div className="mt-6 text-center text-sm text-slate-500">{footer}</div>}
+      {footer && <div className={cn("mt-6 text-center text-sm text-slate-500", compact && "sm:col-span-2")}>{footer}</div>}
     </div>
   );
 }

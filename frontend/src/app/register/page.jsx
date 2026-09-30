@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Stethoscope } from "lucide-react";
+import { CheckCircle2, ShieldCheck, Stethoscope } from "lucide-react";
 import AuthForm from "@/components/ui/AuthForm";
 import { registerPatient } from "@/services/auth";
 import { useAuth } from "@/context/AuthContext";
@@ -28,36 +28,42 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="flex justify-center mb-8">
-          <div className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-xl bg-teal-600 flex items-center justify-center text-white shadow">
-              <Stethoscope className="h-5 w-5" />
-            </div>
-            <span className="text-xl font-bold text-slate-900">
-              Care<span className="text-teal-600">Connect</span>
-            </span>
+    <div className="relative min-h-[calc(100vh-4rem)] overflow-hidden bg-[radial-gradient(circle_at_top_left,_#dff5ef_0,_transparent_38%),linear-gradient(135deg,_#f8fbfa_0%,_#eef8f5_48%,_#ffffff_100%)] px-4 py-6 sm:px-6 sm:py-8">
+      <div className="relative mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-12">
+        <div className="hidden lg:block">
+          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-white/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-teal-700 shadow-sm">
+            <ShieldCheck className="h-3.5 w-3.5" /> Trusted virtual care
+          </div>
+          <h1 className="max-w-md text-5xl font-semibold leading-[1.05] tracking-[-0.04em] text-slate-950">Start your healthier routine today.</h1>
+          <p className="mt-6 max-w-md text-base leading-7 text-slate-600">Create one secure account to find doctors, book consultations, and keep your care journey organized.</p>
+          <div className="mt-8 space-y-4 text-sm text-slate-600">
+            <div className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-teal-600" /> Verified healthcare professionals</div>
+            <div className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-teal-600" /> Private video consultations</div>
+            <div className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-teal-600" /> Prescriptions available anytime</div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-          <AuthForm
-            title="Create Patient Account"
-            subtitle="Register for free to connect with doctors and book consultations."
-            fields={FIELDS}
-            submitLabel="Create Account"
-            accentColor="teal"
-            onSubmit={handleSubmit}
-            footer={
-              <>
-                Already have an account?{" "}
-                <Link href="/login" className="font-medium text-teal-600 hover:underline">
-                  Sign in
-                </Link>
-              </>
-            }
-          />
+        <div className="w-full max-w-xl justify-self-center">
+          <div className="rounded-3xl border border-white/80 bg-white/90 p-5 shadow-2xl shadow-teal-900/10 backdrop-blur sm:p-7 mt-7">
+
+            <AuthForm
+              title="Create Patient Account"
+              subtitle="Register for free to connect with doctors and book consultations."
+              fields={FIELDS}
+              submitLabel="Create Account"
+              accentColor="teal"
+              compact
+              onSubmit={handleSubmit}
+              footer={
+                <>
+                  Already have an account?{" "}
+                  <Link href="/login" className="font-medium text-teal-600 transition-colors hover:text-teal-700 hover:underline">
+                    Sign in
+                  </Link>
+                </>
+              }
+            />
+          </div>
         </div>
       </div>
     </div>
