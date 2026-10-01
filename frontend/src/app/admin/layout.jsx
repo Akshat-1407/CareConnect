@@ -1,10 +1,17 @@
-import AdminNav from "@/components/admin/AdminNav";
+"use client";
 
-export const metadata = {
-  title: "CareConnect — Admin Portal",
-};
+import AdminNav from "@/components/admin/AdminNav";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
+import AuthRedirectLoader from "@/components/auth/AuthRedirectLoader";
 
 export default function AdminLayout({ children }) {
+  const { user, isAuthorized, loading } = useRequireAuth("admin", "/internal/admin/login");
+
+  // While checking authentication or redirecting unauthorized users (e.g. patients or doctors)
+  if (loading || !isAuthorized) {
+    return <AuthRedirectLoader currentRole={user?.role || "admin"} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Sidebar (Fixed on Desktop, Header on Mobile) */}

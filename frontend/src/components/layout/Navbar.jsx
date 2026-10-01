@@ -33,11 +33,6 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  // Strictly hide Navbar on internal admin portal routes
-  if (pathname?.startsWith("/admin") || pathname?.startsWith("/internal/admin")) {
-    return null;
-  }
-
   useEffect(() => {
     let ticking = false;
 
@@ -65,6 +60,11 @@ export default function Navbar() {
     setMobileMenuOpen(false);
     router.push("/login");
   };
+
+  // Strictly hide Navbar on internal admin portal routes (placed AFTER all hooks)
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/internal/admin")) {
+    return null;
+  }
 
   return (
     <header
