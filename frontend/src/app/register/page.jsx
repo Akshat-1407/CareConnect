@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, ShieldCheck, Stethoscope } from "lucide-react";
+import { CheckCircle2, ShieldCheck, Stethoscope, Loader2 } from "lucide-react";
 import AuthForm from "@/components/ui/AuthForm";
 import { registerPatient } from "@/services/auth";
 import { useAuth } from "@/context/AuthContext";
+import { useGuestOnly } from "@/hooks/useGuestOnly";
+import AuthRedirectLoader from "@/components/auth/AuthRedirectLoader";
 
 const FIELDS = [
   { name: "first_name", label: "First Name", placeholder: "John", autoComplete: "given-name" },
@@ -19,6 +21,7 @@ const FIELDS = [
 
 export default function RegisterPage() {
   const { login } = useAuth();
+  const { isAuthenticated, role, loading } = useGuestOnly();
   const router = useRouter();
 
   const handleSubmit = async (values) => {
@@ -26,6 +29,20 @@ export default function RegisterPage() {
     login(data.user);
     router.push("/patient/dashboard");
   };
+
+  // If user is already authenticated with ANY role, show the dynamic redirect loader
+  if (isAuthenticated) {
+    return <AuthRedirectLoader currentRole={role} />;
+  }
+
+  // Session verification on initial mount
+  if (loading) {
+    return (
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] overflow-hidden bg-[radial-gradient(circle_at_top_left,_#dff5ef_0,_transparent_38%),linear-gradient(135deg,_#f8fbfa_0%,_#eef8f5_48%,_#ffffff_100%)] px-4 py-6 sm:px-6 sm:py-8">
@@ -45,7 +62,6 @@ export default function RegisterPage() {
 
         <div className="w-full max-w-xl justify-self-center">
           <div className="rounded-3xl border border-white/80 bg-white/90 p-5 shadow-2xl shadow-teal-900/10 backdrop-blur sm:p-7 mt-7">
-
             <AuthForm
               title="Create Patient Account"
               subtitle="Register for free to connect with doctors and book consultations."

@@ -1,11 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Loader2 } from "lucide-react";
 
 import AuthForm from "@/components/ui/AuthForm";
 import { loginAdmin } from "@/services/auth";
 import { useAuth } from "@/context/AuthContext";
+import { useGuestOnly } from "@/hooks/useGuestOnly";
+import AuthRedirectLoader from "@/components/auth/AuthRedirectLoader";
 
 const FIELDS = [
   {
@@ -25,14 +27,28 @@ const FIELDS = [
 
 export default function AdminLoginPage() {
   const { login } = useAuth();
+  const { isAuthenticated, role, loading } = useGuestOnly();
   const router = useRouter();
 
   const handleSubmit = async (values) => {
     const data = await loginAdmin(values);
-
     login(data.user);
     router.push("/admin/dashboard");
   };
+
+  // If user is already authenticated with ANY role, show the dynamic redirect loader
+  if (isAuthenticated) {
+    return <AuthRedirectLoader currentRole={role} />;
+  }
+
+  // Session verification on initial mount
+  if (loading) {
+    return (
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-700" />
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-slate-50">

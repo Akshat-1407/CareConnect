@@ -45,12 +45,58 @@ body {
   }
 }
 
+@keyframes care-ripple {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+@keyframes dot-bounce {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
 .care-float {
   animation: care-float 9s ease-in-out infinite;
 }
 
 .care-enter {
   animation: care-enter 600ms ease-out both;
+}
+
+.care-ripple {
+  animation: care-ripple 3s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
+.dot-bounce-1 {
+  animation: dot-bounce 1.2s ease-in-out infinite;
+  animation-delay: 0s;
+}
+.dot-bounce-2 {
+  animation: dot-bounce 1.2s ease-in-out infinite;
+  animation-delay: 0.15s;
+}
+.dot-bounce-3 {
+  animation: dot-bounce 1.2s ease-in-out infinite;
+  animation-delay: 0.3s;
+}
+.dot-bounce-4 {
+  animation: dot-bounce 1.2s ease-in-out infinite;
+  animation-delay: 0.45s;
 }
 
 @media (prefers-reduced-motion: reduce) {

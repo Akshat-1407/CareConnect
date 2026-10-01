@@ -2,18 +2,21 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import AuthForm from "@/components/ui/AuthForm";
 import { loginPatient } from "@/services/auth";
 import { useAuth } from "@/context/AuthContext";
+import { useGuestOnly } from "@/hooks/useGuestOnly";
+import AuthRedirectLoader from "@/components/auth/AuthRedirectLoader";
 
 const FIELDS = [
   { name: "username", label: "Username", placeholder: "your_username", autoComplete: "username" },
   { name: "password", label: "Password", type: "password", placeholder: "••••••••", autoComplete: "current-password" },
 ];
 
-
 export default function PatientLoginPage() {
   const { login } = useAuth();
+  const { isAuthenticated, role, loading } = useGuestOnly();
   const router = useRouter();
 
   const handleSubmit = async (values) => {
@@ -22,6 +25,20 @@ export default function PatientLoginPage() {
     router.push("/patient/dashboard");
   };
 
+  // If user is already authenticated with ANY role, show the dynamic redirect loader
+  if (isAuthenticated) {
+    return <AuthRedirectLoader currentRole={role} />;
+  }
+
+  // Session verification on initial mount
+  if (loading) {
+    return (
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+      </div>
+    );
+  }
+
   return (
     <div className="relative isolate flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden bg-[linear-gradient(135deg,_#f8fbfa_0%,_#eef8f5_52%,_#ffffff_100%)] px-4 py-12 sm:px-6">
       <div aria-hidden="true" className="care-float pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-teal-200/35 blur-3xl" />
@@ -29,22 +46,22 @@ export default function PatientLoginPage() {
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(#0f766e_0.7px,transparent_0.7px)] [background-size:24px_24px]" />
       <div className="relative w-full max-w-md">
         <div className="care-enter rounded-3xl border border-white/80 bg-white/90 p-7 shadow-2xl shadow-teal-900/10 backdrop-blur-sm transition-shadow duration-300 hover:shadow-teal-900/15 sm:p-9">
-            <AuthForm
-              title="Patient Sign In"
-              subtitle="Welcome back. Access your appointments and consultations."
-              fields={FIELDS}
-              submitLabel="Sign In"
-              accentColor="teal"
-              onSubmit={handleSubmit}
-              footer={
-                <>
-                  Don&apos;t have an account?{" "}
-                  <Link href="/register" className="font-medium text-teal-600 transition-colors hover:text-teal-700 hover:underline">
-                    Register here
-                  </Link>
-                </>
-              }
-            />
+          <AuthForm
+            title="Patient Sign In"
+            subtitle="Welcome back. Access your appointments and consultations."
+            fields={FIELDS}
+            submitLabel="Sign In"
+            accentColor="teal"
+            onSubmit={handleSubmit}
+            footer={
+              <>
+                Don&apos;t have an account?{" "}
+                <Link href="/register" className="font-medium text-teal-600 transition-colors hover:text-teal-700 hover:underline">
+                  Register here
+                </Link>
+              </>
+            }
+          />
         </div>
       </div>
     </div>
