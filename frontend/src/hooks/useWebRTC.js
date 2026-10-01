@@ -159,6 +159,35 @@ export function useWebRTC({
     return pc;
   }, [iceServers, sendSignal]);
 
+  // Clean up WebRTC and local tracks
+  const cleanupCall = useCallback(() => {
+    if (durationTimerRef.current) {
+      clearInterval(durationTimerRef.current);
+      durationTimerRef.current = null;
+    }
+
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => track.stop());
+      localStreamRef.current = null;
+      setLocalStream(null);
+    }
+
+    if (pcRef.current) {
+      pcRef.current.close();
+      pcRef.current = null;
+    }
+
+    if (socketRef.current) {
+      socketRef.current.close();
+      socketRef.current = null;
+    }
+
+    setRemoteStream(null);
+    setRemotePeerJoined(false);
+    iceCandidateQueue.current = [];
+    isJoinedRef.current = false;
+  }, []);
+
   // Handle incoming signaling messages from other peer
   const handleSignalingMessage = useCallback(async (data) => {
     const pc = pcRef.current;
@@ -342,34 +371,6 @@ export function useWebRTC({
     }
   }, [initializeLocalMedia, setupPeerConnection, connectWebSocket]);
 
-  // Clean up WebRTC and local tracks
-  const cleanupCall = useCallback(() => {
-    if (durationTimerRef.current) {
-      clearInterval(durationTimerRef.current);
-      durationTimerRef.current = null;
-    }
-
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => track.stop());
-      localStreamRef.current = null;
-      setLocalStream(null);
-    }
-
-    if (pcRef.current) {
-      pcRef.current.close();
-      pcRef.current = null;
-    }
-
-    if (socketRef.current) {
-      socketRef.current.close();
-      socketRef.current = null;
-    }
-
-    setRemoteStream(null);
-    setRemotePeerJoined(false);
-    iceCandidateQueue.current = [];
-    isJoinedRef.current = false;
-  }, []);
 
   // End Call action
   const endCall = useCallback(async () => {
