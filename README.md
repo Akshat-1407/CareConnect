@@ -1,471 +1,162 @@
-# CareConnect — VirtualCare Telemedicine
+# CareConnect360 - VirtualCare Telemedicine Platform
 
-CareConnect is a simple telemedicine MVP for finding doctors, booking and paying for appointments, joining video consultations, and receiving prescriptions.
+CareConnect360 is a comprehensive, modern telemedicine MVP designed to facilitate seamless virtual healthcare. It allows patients to discover verified doctors, book appointments, complete secure payments, and conduct real-time video consultations directly within the platform.
 
-The application has three portals:
+## 🚀 Key Features
 
-- Patient
-- Doctor
-- Admin
+### For Patients
+- **Discover Doctors:** Browse and search for verified medical specialists.
+- **Secure Booking:** Schedule appointments and securely pay consultation fees via Razorpay.
+- **Virtual Consultations:** Join confirmed WebRTC-based high-quality video calls directly from the browser.
+- **Digital Prescriptions:** Access post-consultation medical notes and digital prescriptions.
+- **Patient Dashboard:** A cohesive portal to manage upcoming appointments and medical history.
 
-This README is the main project specification. `GEMINI.md` contains permanent development instructions, while phase-specific prompts define what should be implemented at each stage.
+### For Doctors
+- **Schedule Management:** Easily define available time slots for patient bookings.
+- **Consultation Hub:** View assigned appointments and prepare for upcoming patient visits.
+- **Telehealth Video:** Conduct secure video consultations with patients in real-time.
+- **Prescription Issuance:** Write and issue digital prescriptions securely post-consultation.
 
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | Next.js App Router, React, JavaScript/JSX, Tailwind CSS, shadcn/ui |
-| Backend | Python, Django, Django REST Framework |
-| Database | MySQL |
-| Authentication | JWT using `djangorestframework-simplejwt` |
-| Video | WebRTC |
-| Signaling | Django Channels WebSockets |
-| Payments | Razorpay |
-
-Django is the only backend.
-
-The browser communicates with Django through REST APIs. MySQL stores application data. Django Channels handles WebRTC signaling, while WebRTC carries audio and video between browsers.
-
-Redis is not required for the MVP. The Django Channels in-memory layer is acceptable for development. Production should use HTTPS/WSS and a TURN server for reliable WebRTC connectivity.
+### For Administrators
+- **Platform Management:** Secure internal portal to oversee users, doctors, and platform health.
+- **Provider Provisioning:** Create and manage verified doctor accounts (doctors cannot self-register).
+- **Financial Oversight:** View high-level transaction and payment statuses.
 
 ---
 
-## Core MVP Flow
+## 🛠️ Technology Stack
 
-```text
-Patient registers/logs in
-→ Finds a doctor
-→ Views available slots
-→ Books an appointment
-→ Pays using Razorpay
-→ Appointment becomes confirmed
-→ Patient and doctor join video consultation
-→ Doctor writes prescription
-→ Patient views prescription
+**Frontend:**
+- [Next.js](https://nextjs.org/) (App Router)
+- React.js
+- Tailwind CSS (v4) with fully responsive Light & Dark Mode
+- shadcn/ui (Accessible component primitives)
+- WebRTC (Native browser APIs for Video/Audio)
+- Lucide React (Icons)
+
+**Backend:**
+- [Django](https://www.djangoproject.com/) & Django REST Framework (DRF)
+- Django Channels (WebSockets for WebRTC signaling)
+- MySQL (Relational Database)
+- JWT Authentication (`djangorestframework-simplejwt` via HttpOnly Cookies)
+- Razorpay API (Payment Gateway Integration)
+
+---
+
+## ⚙️ Prerequisites
+
+Before you begin, ensure you have met the following requirements:
+- **Node.js** (v18.0 or newer)
+- **Python** (3.10 or newer)
+- **MySQL Server** (running locally or remotely)
+- **Razorpay Account** (for test mode API keys)
+
+---
+
+## 🚀 Installation & Setup
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/your-username/CareConnect360.git
+cd CareConnect
 ```
 
-Keep the first build focused on this flow.
-
----
-
-## Portals
-
-| Portal | Login | Main Area |
-|---|---|---|
-| Patient | `/login` | `/patient/*` |
-| Doctor | `/doctor/login` | `/doctor/*` |
-| Admin | `/internal/admin/login` | `/admin/*` |
-
-The admin login must not be linked from public navigation, homepage, footer, patient login, doctor login, or registration pages.
-
-However, hiding the admin route is not security. Django must verify the admin role on every admin API request.
-
-Public registration creates patient accounts only. Doctor accounts are created by admins. Admin accounts are provisioned privately.
-
----
-
-## Patient Features
-
-Patients can:
-
-- register, login, and logout
-- view dashboard
-- browse doctors
-- search by name or specialization
-- view doctor details and available slots
-- book appointments
-- pay using Razorpay
-- view appointment status
-- join confirmed video consultations
-- view prescriptions
-- view basic payment status
-
-Do not add advanced recommendation systems, ratings, reviews, or location-based search.
-
----
-
-## Doctor Features
-
-Doctors can:
-
-- login and logout
-- view dashboard
-- manage availability
-- view assigned appointments
-- join video consultations
-- write prescriptions for assigned appointments
-
-Doctors do not self-register in the MVP.
-
----
-
-## Admin Features
-
-Admins can:
-
-- login through `/internal/admin/login`
-- view a basic dashboard
-- view users and doctors
-- create doctor accounts
-- view appointments
-- view payment status
-
-Keep the admin portal basic. Do not add advanced analytics or reporting.
-
----
-
-## Appointment Booking
-
-Booking flow:
-
-```text
-Doctor creates available slot
-→ Patient selects doctor and slot
-→ Django verifies availability
-→ Appointment created as PENDING_PAYMENT
-→ Razorpay payment starts
-→ Backend verifies payment
-→ Appointment becomes CONFIRMED
+### 2. Backend Setup (Django)
+Navigate to the backend directory and set up the Python environment:
+```bash
+cd backend
+python -m venv .venv
+.\.venv\Scripts\activate   
+pip install -r requirements.txt
 ```
 
-Prevent double booking using Django transactions and database-level protections where needed.
+Set up your backend environment variables:
+```bash
+cp .env.example .env
+```
+Edit `.env` and configure your MySQL credentials, Django Secret Key, and Razorpay Keys.
 
-Recommended statuses:
-
-```text
-PENDING_PAYMENT
-CONFIRMED
-COMPLETED
-CANCELLED
+Run migrations and start the server:
+```bash
+python manage.py migrate
+python manage.py runserver
 ```
 
----
-
-## Razorpay Payments
-
-Use Razorpay Checkout in test mode during development.
-
-The backend must:
-
-1. create the Razorpay order
-2. verify the Razorpay signature
-3. verify the matching order
-4. verify the expected amount
-5. mark the appointment `CONFIRMED` only after successful verification
-
-Never trust frontend payment success alone.
-
-Keep Razorpay secrets on the Django backend only.
-
-Do not implement refunds, wallets, subscriptions, invoices, or complex accounting.
-
----
-
-## WebRTC Consultation
-
-Use:
-
-- WebRTC for audio/video
-- Django Channels WebSockets for signaling
-
-Recommended signaling route:
-
-```text
-/ws/consultations/{appointmentId}/
+### 3. Frontend Setup (Next.js)
+Open a new terminal, navigate to the frontend directory:
+```bash
+cd frontend
+npm install
 ```
 
-The WebSocket should exchange:
-
-- offer
-- answer
-- ICE candidates
-
-Before allowing a connection, Django must verify:
-
-- the user is authenticated
-- the appointment exists
-- the appointment is eligible for consultation
-- the user is the assigned patient or doctor
-
-Knowing an appointment ID alone must never grant access.
-
-Basic call controls:
-
-- join
-- mute/unmute
-- camera on/off
-- end call
-
-Do not add recording, screen sharing, group calls, effects, or consultation chat.
+Set up your frontend environment variables:
+```bash
+cp .env.example .env.local
+```
+Edit `.env.local` to include `NEXT_PUBLIC_API_URL` (default: `http://localhost:8000/api/v1`) and your public Razorpay Key ID.
 
 ---
 
-## Prescriptions
+## ▶️ Running the Application
 
-A prescription belongs to an appointment, patient, and doctor.
+To run the full CareConnect360 platform locally, you will need two separate terminal windows.
 
-It can contain:
-
-- diagnosis
-- instructions
-- medications
-
-Medication fields can include:
-
-- medicine name
-- dosage
-- frequency
-- duration
-- notes
-
-Only the assigned doctor can create the prescription. Patients can view only their own prescriptions.
-
-Do not add pharmacy integration, AI diagnosis, medicine recommendation, or prescription PDF generation.
-
----
-
-## Authentication
-
-Use JWT with:
-
-```text
-djangorestframework-simplejwt
+### Terminal 1: Start the Django Backend
+Navigate to the `backend` directory, activate your virtual environment, and start the server. This runs on port `8000` by default.
+```bash
+cd backend
+.\.venv\Scripts\activate   
+python -m daphne -b 127.0.0.1 -p 8000 config.asgi:application
 ```
 
-Django issues:
-
-- access token
-- refresh token
-
-Store both tokens in **HttpOnly cookies**.
-
-Do not store JWTs in:
-
-- `localStorage`
-- `sessionStorage`
-- `NEXT_PUBLIC_*` variables
-
-Use CSRF protection for state-changing requests.
-
-Provide a refresh endpoint such as:
-
-```text
-/api/v1/auth/token/refresh/
+### Terminal 2: Start the Next.js Frontend
+Navigate to the `frontend` directory and start the development server. This runs on port `3000` by default.
+```bash
+cd frontend
+npm run dev
 ```
 
-If an authenticated request returns `401` because the access token expired:
+### Additional Helpful Commands
 
-1. refresh once
-2. retry the original request once
-3. redirect to login if refresh fails
+**Frontend:**
+- **Lint the code:** `npm run lint`
+- **Create a production build:** `npm run build`
+- **Start the production build:** `npm start`
 
-Backend authorization must enforce role, appointment, consultation, and prescription ownership.
+**Backend:**
+- **Create database migrations:** `python manage.py makemigrations`
+- **Apply database migrations:** `python manage.py migrate`
+- **Create a superuser (Admin):** `python manage.py createsuperuser`
 
 ---
 
-## Main Routes
+## 🏗️ Architecture & Security Highlights
+
+- **Stateless & Secure Auth:** Utilizes JSON Web Tokens (JWT) stored exclusively in `HttpOnly` cookies to prevent XSS attacks.
+- **Direct Peer-to-Peer Video:** Video streams are strictly Peer-to-Peer (P2P) via WebRTC. Django Channels is only used as a transient signaling server.
+- **Server-Side Payments:** Payment verification is rigorously handled by Django. Webhooks and signature validations strictly dictate appointment statuses.
+- **Role-Based Access Control (RBAC):** Distinct routing and layout paradigms for Patients, Doctors, and System Admins.
+
+---
+
+## 📂 Project Structure
 
 ```text
-Public
-/
-/login
-/register
-/doctor/login
-/internal/admin/login
-
-Patient
-/patient/dashboard
-/patient/doctors
-/patient/book/[doctorId]
-/patient/appointments
-/patient/consultation/[appointmentId]
-/patient/prescriptions
-/patient/payments
-
-Doctor
-/doctor/dashboard
-/doctor/availability
-/doctor/appointments
-/doctor/consultation/[appointmentId]
-/doctor/prescriptions/create/[appointmentId]
-
-Admin
-/admin/dashboard
-/admin/doctors
-/admin/users
-/admin/appointments
-/admin/payments
+CareConnect360/
+├── backend/                  # Django REST & Channels backend
+│   ├── apps/                 # Django apps (accounts, doctors, appointments, etc.)
+│   ├── config/               # Main Django settings & ASGI/WSGI config
+│   ├── manage.py
+│   └── requirements.txt
+├── frontend/                 # Next.js App Router frontend
+│   ├── src/
+│   │   ├── app/              # Next.js page routing (admin, doctor, patient)
+│   │   ├── components/       # Reusable UI components & shadcn primitives
+│   │   ├── context/          # Auth context providers
+│   │   ├── hooks/            # Custom hooks (e.g., useWebRTC)
+│   │   └── services/         # API integration logic
+│   ├── package.json
+│   └── tailwind.config.js
+├── README.md                 # Agentic architecture specification
+└── documentation.md          # Project documentation (this file)
 ```
-
----
-
-## API Groups
-
-All REST APIs should use:
-
-```text
-/api/v1/
-```
-
-Suggested groups:
-
-```text
-auth/
-internal/admin/auth/
-doctors/
-doctor/availability/
-appointments/
-doctor/appointments/
-payments/
-consultations/
-prescriptions/
-doctor/prescriptions/
-admin/
-```
-
----
-
-## Project Structure
-
-```text
-CareConnect/
-├── README.md
-├── GEMINI.md
-├── frontend/
-│   └── src/
-│       ├── app/
-│       ├── components/
-│       │   ├── ui/
-│       │   ├── layout/
-│       │   ├── doctors/
-│       │   ├── appointments/
-│       │   ├── consultation/
-│       │   ├── prescriptions/
-│       │   └── payments/
-│       ├── context/
-│       ├── hooks/
-│       ├── services/
-│       └── lib/
-└── backend/
-    ├── config/
-    └── apps/
-        ├── accounts/
-        ├── doctors/
-        ├── appointments/
-        ├── consultations/
-        ├── prescriptions/
-        └── payments/
-```
-
----
-
-## Frontend Rules
-
-Keep React code modular.
-
-Do not create one large `care-app.jsx` or oversized `page.jsx` files.
-
-Use:
-
-- `components/` for reusable UI and feature components
-- `services/` for API calls
-- `context/` for shared authentication state
-- `hooks/` for WebRTC/WebSocket lifecycle logic
-- `lib/` for shared helpers
-
-Keep `components/ui/` for shadcn/ui primitives.
-
-Avoid both monolithic files and unnecessary tiny wrapper components.
-
----
-
-## UI / UX
-
-The interface should be modern, polished, responsive, and visually appealing.
-
-Use:
-
-- good spacing
-- consistent typography
-- clean cards
-- icons
-- hover states
-- loading states
-- empty states
-- error states
-- subtle animations
-- smooth interactions
-
-The app should feel dynamic without being overly flashy.
-
-Maintain a consistent healthcare-oriented design across patient, doctor, and admin portals.
-
----
-
-## Configuration
-
-Frontend may contain only browser-safe values such as:
-
-- Django API URL
-- WebSocket URL
-- Razorpay public key ID
-
-Backend contains:
-
-- Django secret key
-- MySQL credentials
-- Razorpay key ID and secret
-- allowed frontend origins
-- STUN/TURN configuration when needed
-
-Never expose backend secrets through frontend environment variables.
-
-Use `.env.example` files instead of committing real secrets.
-
----
-
-## Outside the MVP
-
-Do not implement unless explicitly requested:
-
-- notifications
-- consultation chat
-- medical-record uploads
-- invoices
-- refunds
-- doctor earnings
-- advanced analytics
-- ratings and reviews
-- doctor self-registration
-- password recovery
-- social login
-- insurance integration
-- pharmacy integration
-- AI diagnosis or recommendations
-- appointment reminders
-- screen sharing
-- recording
-- group calls
-- Redis
-- Celery
-- Kafka
-- microservices
-- Docker
-
----
-
-## Development Guidance
-
-When using Antigravity:
-
-- treat this README as the source of truth
-- treat `GEMINI.md` as permanent development guidance
-- implement only the current phase
-- do not start future phases automatically
-- keep working functionality intact
-- avoid unnecessary dependencies
-- test changes and fix errors
-- do not create automated test files unless explicitly requested
-- update this README if an important architecture decision changes
