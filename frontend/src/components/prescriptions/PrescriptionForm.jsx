@@ -65,7 +65,12 @@ export default function PrescriptionForm({ appointment, onSubmit, isSubmitting =
     });
   };
 
-  const patientName = appointment?.patient?.name || appointment?.patient?.username || "Patient";
+  const patientName =
+    appointment?.patient?.name ||
+    appointment?.patient_name ||
+    (appointment?.patient?.first_name ? `${appointment.patient.first_name} ${appointment.patient.last_name || ""}`.trim() : null) ||
+    appointment?.patient?.username ||
+    "Patient";
   const slot = appointment?.slot;
 
   return (

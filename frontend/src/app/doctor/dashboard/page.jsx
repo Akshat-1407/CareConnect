@@ -29,7 +29,7 @@ export default function DoctorDashboardPage() {
   const quickLinks = [
     { href: "/doctor/availability", icon: Clock, label: "Manage Availability", desc: "Set your available time slots", color: "blue" },
     { href: "/doctor/appointments", icon: Calendar, label: "My Appointments", desc: "View upcoming patient appointments", color: "teal" },
-    { href: "/doctor/prescriptions/create", icon: FileText, label: "Prescriptions", desc: "Write prescriptions for patients", color: "emerald" },
+    { href: "/doctor/prescriptions", icon: FileText, label: "Prescriptions", desc: "View records & write prescriptions", color: "emerald" },
   ];
 
   const colorMap = {
@@ -50,9 +50,6 @@ export default function DoctorDashboardPage() {
             Manage your schedule, patients, and prescriptions.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 text-slate-600">
-          <LogOut className="h-4 w-4" /> Sign Out
-        </Button>
       </div>
 
       {/* Profile card */}

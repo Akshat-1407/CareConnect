@@ -52,9 +52,6 @@ export default function PatientDashboardPage() {
             Here&apos;s an overview of your healthcare dashboard.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 text-slate-600">
-          <LogOut className="h-4 w-4" /> Sign Out
-        </Button>
       </div>
 
       {/* Profile card */}

@@ -19,29 +19,103 @@ User = get_user_model()
 class AdminStatsView(APIView):
     """
     GET /api/v1/admin/stats/
-    High-level platform statistics for the admin dashboard.
+    Comprehensive platform analytics & live operational insights for admin dashboard.
     """
     permission_classes = [IsAdminRole]
 
     def get(self, request):
         total_patients = User.objects.filter(role='patient').count()
+        active_patients = User.objects.filter(role='patient', is_active=True).count()
         total_doctors = DoctorProfile.objects.count()
-        total_appointments = Appointment.objects.count()
-        confirmed_appointments = Appointment.objects.filter(status=Appointment.Status.CONFIRMED).count()
-        completed_appointments = Appointment.objects.filter(status=Appointment.Status.COMPLETED).count()
+        active_doctors = DoctorProfile.objects.filter(is_available=True).count()
 
-        successful_payments = Payment.objects.filter(status=Payment.Status.SUCCESS)
-        total_payments_count = successful_payments.count()
+        # Appointments breakdown
+        all_appts = Appointment.objects.all()
+        total_appointments = all_appts.count()
+        confirmed_appointments = all_appts.filter(status=Appointment.Status.CONFIRMED).count()
+        completed_appointments = all_appts.filter(status=Appointment.Status.COMPLETED).count()
+        pending_appointments = all_appts.filter(status=Appointment.Status.PENDING_PAYMENT).count()
+        cancelled_appointments = all_appts.filter(status=Appointment.Status.CANCELLED).count()
+
+        # Slots
+        all_slots = AvailabilitySlot.objects.all()
+        total_slots = all_slots.count()
+        booked_slots = all_slots.filter(is_booked=True).count()
+        available_slots = all_slots.filter(is_booked=False).count()
+
+        # Payments & Revenue
+        all_payments = Payment.objects.all()
+        successful_payments = all_payments.filter(status=Payment.Status.SUCCESS)
         total_revenue = successful_payments.aggregate(total=Sum('amount'))['total'] or 0
+        total_payments_count = all_payments.count()
+        success_payments_count = successful_payments.count()
+        pending_payments_count = all_payments.filter(status=Payment.Status.PENDING).count()
+        failed_payments_count = all_payments.filter(status=Payment.Status.FAILED).count()
+
+        avg_revenue = (float(total_revenue) / success_payments_count) if success_payments_count > 0 else 0
+        payment_success_rate = round((success_payments_count / total_payments_count * 100), 1) if total_payments_count > 0 else 100.0
+
+        # Specializations breakdown
+        specializations = list(
+            DoctorProfile.objects.values('specialization')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:5]
+        )
+
+        # Recent Appointments (6 latest)
+        recent_appointments = [
+            {
+                'id': a.id,
+                'patient_name': a.patient.get_full_name() or a.patient.username,
+                'patient_email': a.patient.email,
+                'doctor_name': f"Dr. {a.doctor.user.get_full_name() or a.doctor.user.username}",
+                'specialization': a.doctor.specialization,
+                'amount': str(a.amount),
+                'status': a.status,
+                'date': str(a.slot.date) if a.slot else None,
+                'start_time': str(a.slot.start_time) if a.slot else None,
+                'created_at': a.created_at.isoformat() if a.created_at else None,
+            }
+            for a in all_appts.select_related('patient', 'doctor', 'doctor__user', 'slot').order_by('-created_at')[:6]
+        ]
+
+        # Recent Payments (5 latest)
+        recent_payments = [
+            {
+                'id': p.id,
+                'appointment_id': p.appointment_id,
+                'patient_name': (p.appointment.patient.get_full_name() or p.appointment.patient.username) if p.appointment else "N/A",
+                'amount': str(p.amount),
+                'status': p.status,
+                'razorpay_order_id': p.razorpay_order_id,
+                'created_at': p.created_at.isoformat() if p.created_at else None,
+            }
+            for p in all_payments.select_related('appointment', 'appointment__patient').order_by('-created_at')[:5]
+        ]
 
         return Response({
             'total_patients': total_patients,
+            'active_patients': active_patients,
             'total_doctors': total_doctors,
+            'active_doctors': active_doctors,
             'total_appointments': total_appointments,
             'confirmed_appointments': confirmed_appointments,
             'completed_appointments': completed_appointments,
+            'pending_appointments': pending_appointments,
+            'cancelled_appointments': cancelled_appointments,
+            'total_slots': total_slots,
+            'booked_slots': booked_slots,
+            'available_slots': available_slots,
             'total_payments': total_payments_count,
+            'successful_payments': success_payments_count,
+            'pending_payments': pending_payments_count,
+            'failed_payments': failed_payments_count,
             'total_revenue': float(total_revenue),
+            'avg_revenue_per_appt': round(avg_revenue, 2),
+            'payment_success_rate': payment_success_rate,
+            'specializations': specializations,
+            'recent_appointments': recent_appointments,
+            'recent_payments': recent_payments,
         }, status=status.HTTP_200_OK)
 
 

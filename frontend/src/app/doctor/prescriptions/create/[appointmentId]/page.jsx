@@ -126,7 +126,9 @@ export default function DoctorCreatePrescriptionPage() {
               <h2 className="text-2xl font-extrabold text-slate-900">Prescription Issued!</h2>
               <p className="text-xs sm:text-sm text-slate-500 mt-1">
                 Medical prescription #{createdPrescription.id} has been recorded for{" "}
-                <span className="font-semibold text-slate-800">{appointment?.patient?.name}</span>.
+                <span className="font-semibold text-slate-800">
+                  {appointment?.patient?.name || appointment?.patient_name || "the patient"}
+                </span>.
               </p>
             </div>
 
