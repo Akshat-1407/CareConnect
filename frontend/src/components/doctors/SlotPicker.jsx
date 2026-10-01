@@ -24,10 +24,15 @@ function formatDateString(dateStr) {
 }
 
 export default function SlotPicker({ slots, selectedSlot, onSelectSlot }) {
-  // Group slots by date
+  // Filter out slots whose start_time has already passed, then group by date
   const slotsByDate = useMemo(() => {
+    const now = new Date();
     const map = {};
     (slots || []).forEach((slot) => {
+      // Build a proper Date object from the slot's date + start_time
+      const slotDateTime = new Date(`${slot.date}T${slot.start_time}`);
+      if (slotDateTime <= now) return; // Skip past slots
+
       if (!map[slot.date]) {
         map[slot.date] = [];
       }
@@ -46,7 +51,10 @@ export default function SlotPicker({ slots, selectedSlot, onSelectSlot }) {
 
   const currentSlots = slotsByDate[activeDate] || [];
 
-  if (!slots || slots.length === 0) {
+  // Total count of available (non-past) slots
+  const totalAvailable = Object.values(slotsByDate).reduce((sum, arr) => sum + arr.length, 0);
+
+  if (totalAvailable === 0) {
     return (
       <Card className="border-slate-200">
         <CardContent className="py-12 text-center">
@@ -71,7 +79,7 @@ export default function SlotPicker({ slots, selectedSlot, onSelectSlot }) {
             </CardTitle>
           </div>
           <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-700">
-            {slots.length} available {slots.length === 1 ? "slot" : "slots"}
+            {totalAvailable} available {totalAvailable === 1 ? "slot" : "slots"}
           </Badge>
         </div>
       </CardHeader>

@@ -40,13 +40,13 @@ export default function PatientLoginPage() {
   }
 
   return (
-    <div className="relative isolate flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden bg-[linear-gradient(135deg,_#f8fbfa_0%,_#eef8f5_52%,_#ffffff_100%)] px-4 py-12 sm:px-6">
+    <div className="relative isolate flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden bg-[linear-gradient(135deg,#f8fbfa_0%,#eef8f5_52%,#ffffff_100%)] px-4 py-12 sm:px-6">
       {/* ========================================================= */}
       {/* 1. DOTTED PATTERN BACKGROUND WITH RADIAL MASK FADE        */}
       {/* ========================================================= */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.5] [background-image:radial-gradient(#0d9488_1.2px,transparent_1.2px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_75%_65%_at_50%_50%,#000_55%,transparent_100%)]"
+        className="pointer-events-none absolute inset-0 opacity-[0.5] bg-[radial-gradient(#0d9488_1.2px,transparent_1.2px)] bg-size-[24px_24px] mask-[radial-gradient(ellipse_75%_65%_at_50%_50%,#000_55%,transparent_100%)]"
       />
 
       {/* Floating ambient glow orbs */}

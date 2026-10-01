@@ -119,6 +119,14 @@ export default function BookDoctorPage() {
   const handleStartBooking = async () => {
     if (!selectedSlot) return;
 
+    // Client-side guard: prevent booking a slot whose time has already passed
+    const slotDateTime = new Date(`${selectedSlot.date}T${selectedSlot.start_time}`);
+    if (slotDateTime <= new Date()) {
+      setBookingError("This slot's time has already passed. Please select a different slot.");
+      setSelectedSlot(null);
+      return;
+    }
+
     setBookingError("");
     setIsProcessing(true);
     setPaymentStatusText("Verifying slot and initiating Razorpay order...");

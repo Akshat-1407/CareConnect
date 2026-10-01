@@ -55,6 +55,17 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1280) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const handleLogout = async () => {
     await logout();
     setMobileMenuOpen(false);
@@ -78,10 +89,10 @@ export default function Navbar() {
       {/* NAVBAR CONTAINER (Smooth morph from Flush to Floating)    */}
       {/* ========================================================= */}
       <div
-        className={`transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           scrolled
             ? "pointer-events-auto mx-auto max-w-7xl rounded-full border border-slate-200/90 bg-white/95 backdrop-blur-md shadow-[0_20px_50px_rgba(15,23,42,0.15),0_8px_20px_rgba(15,23,42,0.08)] px-6 sm:px-8 ring-1 ring-slate-900/10"
-            : "mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 shadow-none"
+            : "w-full px-6 sm:px-10 lg:px-12 shadow-none"
         }`}
       >
         <div
@@ -94,7 +105,7 @@ export default function Navbar() {
           {/* ======================================================= */}
           <Link href="/" className="flex items-center gap-3.5 group shrink-0">
             <div
-              className={`flex items-center justify-center rounded-2xl bg-gradient-to-tr from-teal-600 via-teal-500 to-emerald-500 text-white shadow-md shadow-teal-500/25 group-hover:scale-105 group-hover:shadow-teal-500/35 transition-all duration-300 ${
+              className={`flex items-center justify-center rounded-2xl bg-linear-to-tr from-teal-600 via-teal-500 to-emerald-500 text-white shadow-md shadow-teal-500/25 group-hover:scale-105 group-hover:shadow-teal-500/35 transition-all duration-300 ${
                 scrolled ? "h-11 w-11" : "h-13 w-13"
               }`}
             >
@@ -117,7 +128,7 @@ export default function Navbar() {
           {/* ======================================================= */}
           {/* 2. CENTER: HORIZONTAL NAVIGATION LINKS                  */}
           {/* ======================================================= */}
-          <nav className="hidden md:flex items-center gap-2 lg:gap-3">
+          <nav className="hidden xl:flex items-center gap-2 lg:gap-3">
             {/* Authenticated Patient Links */}
             {isAuthenticated && role === "patient" && (
               <>
@@ -212,7 +223,7 @@ export default function Navbar() {
           {/* ======================================================= */}
           {/* 3. RIGHT: CTA PILL BUTTONS & USER STATUS                */}
           {/* ======================================================= */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden xl:flex items-center gap-3">
             {loading ? (
               <div className="h-10 w-32 animate-pulse rounded-full bg-slate-100" />
             ) : isAuthenticated ? (
@@ -222,7 +233,7 @@ export default function Navbar() {
                   <div className="h-7 w-7 rounded-full bg-teal-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
                     {user?.first_name?.[0] || user?.username?.[0]?.toUpperCase() || "U"}
                   </div>
-                  <span className="text-xs font-black text-slate-900 max-w-[130px] truncate">
+                  <span className="text-xs font-black text-slate-900 max-w-32.5 truncate">
                     {user?.first_name ? `${user.first_name}` : user?.username}
                   </span>
                   <Badge
@@ -294,11 +305,12 @@ export default function Navbar() {
           {/* ======================================================= */}
           {/* 4. MOBILE: HAMBURGER TOGGLE BUTTON                      */}
           {/* ======================================================= */}
-          <div className="flex md:hidden items-center">
+          <div className="flex xl:hidden items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="flex h-11 w-11 items-center justify-center rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
               aria-label="Toggle Navigation Menu"
+              aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -310,7 +322,7 @@ export default function Navbar() {
       {/* 5. MOBILE DROPDOWN CARD                                   */}
       {/* ========================================================= */}
       {mobileMenuOpen && (
-        <div className="pointer-events-auto mx-auto mt-2.5 max-w-7xl rounded-3xl border border-slate-200/90 bg-white/95 backdrop-blur-md p-5 shadow-2xl shadow-slate-900/10 md:hidden animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
+        <div className="pointer-events-auto mx-auto mt-2.5 max-w-7xl rounded-3xl border border-slate-200/90 bg-white/95 backdrop-blur-md p-5 shadow-2xl shadow-slate-900/10 xl:hidden animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
           {isAuthenticated ? (
             <div className="space-y-3">
               {/* Mobile User Header */}

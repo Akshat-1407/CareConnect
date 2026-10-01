@@ -321,7 +321,7 @@ export default function AdminDashboardPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-slate-900">{appt.doctor_name}</div>
-                        <div className="text-xs text-slate-500 mt-0.5 truncate max-w-[120px]">{appt.specialization}</div>
+                        <div className="text-xs text-slate-500 mt-0.5 truncate max-w-30">{appt.specialization}</div>
                       </td>
                       <td className="px-4 py-3 text-right">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-medium uppercase tracking-wider ${apptStatusColors[appt.status] || "text-slate-700 bg-slate-50 border-slate-200"}`}>

@@ -45,11 +45,11 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="relative isolate min-h-[calc(100vh-4rem)] overflow-hidden bg-[radial-gradient(circle_at_top_left,_#dff5ef_0,_transparent_38%),linear-gradient(135deg,_#f8fbfa_0%,_#eef8f5_48%,_#ffffff_100%)] px-4 py-6 sm:px-6 sm:py-8">
+    <div className="relative isolate min-h-[calc(100vh-4rem)] overflow-hidden bg-[radial-gradient(circle_at_top_left,#dff5ef_0,transparent_38%),linear-gradient(135deg,#f8fbfa_0%,#eef8f5_48%,#ffffff_100%)] px-4 py-6 sm:px-6 sm:py-8">
       {/* Dotted pattern overlay */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.45] [background-image:radial-gradient(#0d9488_1.2px,transparent_1.2px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_75%_65%_at_50%_50%,#000_55%,transparent_100%)]"
+        className="pointer-events-none absolute inset-0 opacity-[0.45] bg-[radial-gradient(#0d9488_1.2px,transparent_1.2px)] bg-size-[24px_24px] mask-[radial-gradient(ellipse_75%_65%_at_50%_50%,#000_55%,transparent_100%)]"
       />
 
       <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-12">
