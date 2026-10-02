@@ -40,13 +40,23 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+]
+
+# Use whitenoise in production (or if installed locally)
+try:
+    import whitenoise
+    MIDDLEWARE.append('whitenoise.middleware.WhiteNoiseMiddleware')
+except ImportError:
+    pass
+
+MIDDLEWARE.extend([
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-]
+])
 
 # CORS and CSRF Settings
 CORS_ALLOWED_ORIGINS = [
@@ -84,7 +94,27 @@ ASGI_APPLICATION = 'config.asgi.application'
 
 # Database Configuration (MySQL as primary, SQLite fallback if needed)
 DB_ENGINE = os.getenv('DB_ENGINE', 'mysql')
-if DB_ENGINE == 'mysql':
+DATABASE_URL = os.getenv('MYSQL_URL') or os.getenv('DATABASE_URL')
+
+if DATABASE_URL:
+    # Parse Railway / cloud MySQL connection URL (e.g., mysql://user:password@host:port/database)
+    import urllib.parse
+    url = urllib.parse.urlparse(DATABASE_URL)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': url.path.lstrip('/'),
+            'USER': url.username or '',
+            'PASSWORD': urllib.parse.unquote(url.password or ''),
+            'HOST': url.hostname or '',
+            'PORT': str(url.port or 3306),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+        }
+    }
+elif DB_ENGINE == 'mysql':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
@@ -144,13 +174,29 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+# Static files configuration
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+try:
+    import whitenoise
+    STORAGES = {
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+except ImportError:
+    pass
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom user model
 AUTH_USER_MODEL = 'accounts.User'
 
 # JWT & Cookie configuration
+# In production (DEBUG=False), cookies are set to Secure + SameSite=None
+# for cross-origin requests between Vercel frontend and Render backend.
+# Locally (DEBUG=True), cookies use SameSite=Lax without Secure flag.
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
@@ -158,11 +204,10 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_COOKIE': 'access_token',
     'AUTH_COOKIE_REFRESH': 'refresh_token',
-    'AUTH_COOKIE_SECURE': False,         # Set True in production (HTTPS)
-    'AUTH_COOKIE_SAMESITE': 'Lax',
+    'AUTH_COOKIE_SECURE': not DEBUG,
+    'AUTH_COOKIE_SAMESITE': 'None' if not DEBUG else 'Lax',
     'ACCESS_TOKEN_COOKIE_MAX_AGE': 60 * 15,         # 15 minutes in seconds
-    'REFRESH_TOKEN_COOKIE_MAX_AGE': 60 * 60 * 24,  # 24 hours in seconds
-    # Read access token from cookie in addition to Authorization header
+    'REFRESH_TOKEN_COOKIE_MAX_AGE': 60 * 60 * 24,   # 24 hours in seconds
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
 

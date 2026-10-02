@@ -32,9 +32,17 @@ def _set_auth_cookies(response, access_token, refresh_token):
 
 
 def _clear_auth_cookies(response):
-    """Clear JWT cookies."""
-    response.delete_cookie('access_token', path='/')
-    response.delete_cookie('refresh_token', path='/')
+    """Clear JWT cookies with settings-aligned attributes."""
+    response.delete_cookie(
+        'access_token',
+        path='/',
+        samesite=settings.SIMPLE_JWT.get('AUTH_COOKIE_SAMESITE', 'Lax'),
+    )
+    response.delete_cookie(
+        'refresh_token',
+        path='/',
+        samesite=settings.SIMPLE_JWT.get('AUTH_COOKIE_SAMESITE', 'Lax'),
+    )
 
 
 class RegisterView(APIView):
