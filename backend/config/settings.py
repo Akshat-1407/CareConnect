@@ -92,41 +92,83 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
+def _get_ssl_options(host='', force_ssl=False):
+    """
+    TiDB Cloud Serverless and other managed MySQL providers require SSL/TLS encryption.
+    Automatically attach CA certificates using certifi when connecting to TiDB Cloud or
+    when force_ssl is requested.
+    """
+    use_ssl = force_ssl or ('tidbcloud.com' in host.lower())
+    if not use_ssl:
+        return {}
+
+    try:
+        import certifi
+        ca_path = certifi.where()
+        if os.path.exists(ca_path):
+            return {'ssl': {'ca': ca_path}}
+    except Exception:
+        pass
+
+    import ssl
+    return {'ssl': ssl.create_default_context()}
+
+
 # Database Configuration (MySQL as primary, SQLite fallback if needed)
 DB_ENGINE = os.getenv('DB_ENGINE', 'mysql')
-DATABASE_URL = os.getenv('MYSQL_URL') or os.getenv('DATABASE_URL')
+DATABASE_URL = os.getenv('TIDB_URL') or os.getenv('MYSQL_URL') or os.getenv('DATABASE_URL')
 
 if DATABASE_URL:
-    # Parse Railway / cloud MySQL connection URL (e.g., mysql://user:password@host:port/database)
+    # Parse TiDB Cloud / cloud MySQL connection URL (e.g., mysql://user:password@host:port/database)
     import urllib.parse
     url = urllib.parse.urlparse(DATABASE_URL)
+    db_host = url.hostname or ''
+    db_port = str(url.port or (4000 if 'tidbcloud.com' in db_host.lower() else 3306))
+    db_name = url.path.lstrip('/').split('?')[0] or 'test'
+    db_user = urllib.parse.unquote(url.username or '')
+    db_password = urllib.parse.unquote(url.password or '')
+    force_ssl = ('ssl' in url.query.lower()) or (os.getenv('DB_SSL', '').lower() in ('true', '1', 'yes'))
+
+    options = {
+        'charset': 'utf8mb4',
+        'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+    }
+    options.update(_get_ssl_options(host=db_host, force_ssl=force_ssl))
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': url.path.lstrip('/'),
-            'USER': url.username or '',
-            'PASSWORD': urllib.parse.unquote(url.password or ''),
-            'HOST': url.hostname or '',
-            'PORT': str(url.port or 3306),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            },
+            'NAME': db_name,
+            'USER': db_user,
+            'PASSWORD': db_password,
+            'HOST': db_host,
+            'PORT': db_port,
+            'OPTIONS': options,
         }
     }
 elif DB_ENGINE == 'mysql':
+    db_host = os.getenv('DB_HOST', '127.0.0.1')
+    db_port = os.getenv('DB_PORT', '4000' if 'tidbcloud.com' in db_host.lower() else '3306')
+    db_name = os.getenv('DB_NAME', 'careconnect')
+    db_user = os.getenv('DB_USER', 'root')
+    db_password = os.getenv('DB_PASSWORD', '')
+    force_ssl = os.getenv('DB_SSL', '').lower() in ('true', '1', 'yes')
+
+    options = {
+        'charset': 'utf8mb4',
+        'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+    }
+    options.update(_get_ssl_options(host=db_host, force_ssl=force_ssl))
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.getenv('DB_NAME', 'careconnect'),
-            'USER': os.getenv('DB_USER', 'root'),
-            'PASSWORD': os.getenv('DB_PASSWORD', ''),
-            'HOST': os.getenv('DB_HOST', '127.0.0.1'),
-            'PORT': os.getenv('DB_PORT', '3306'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            },
+            'NAME': db_name,
+            'USER': db_user,
+            'PASSWORD': db_password,
+            'HOST': db_host,
+            'PORT': db_port,
+            'OPTIONS': options,
         }
     }
 else:
