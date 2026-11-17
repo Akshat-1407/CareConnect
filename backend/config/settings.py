@@ -37,6 +37,11 @@ INSTALLED_APPS = [
     'apps.payments',
 ]
 
+# Override token_blacklist migrations for TiDB distributed DDL compatibility
+MIGRATION_MODULES = {
+    'token_blacklist': 'apps.token_blacklist_migrations',
+}
+
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
